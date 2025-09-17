@@ -42,7 +42,7 @@ def _build_ping_cmd(ip: str):
 
 def ping_host(ip: str) -> bool:
     """Ping a host and return True if reachable (exit code 0)."""
-    print ("Pinging ", ip,"...............................................")
+    # print ("Pinging ", ip,"...............................................")
     try:
         result = subprocess.run(
             _build_ping_cmd(ip),
