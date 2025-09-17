@@ -13,7 +13,7 @@ load_dotenv()
 
 
 IP = os.getenv("IP")
-JSON_FILE_PATH = os.getenv("MqttFilePath", r"D:\development\React\for vessel\mqtt_live_data.json")
+JSON_FILE_PATH = os.getenv("MqttFilePath", r"C:\Mqtt\__data\mqtt_live_data.json")
 # ------------------------------------------------------
 
 
