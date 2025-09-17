@@ -33,3 +33,6 @@ env/
 # OS / Misc
 .DS_Store
 Thumbs.db
+
+# JSON files
+.json
