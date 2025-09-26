@@ -208,4 +208,6 @@ if __name__ == '__main__':
     init_db()
     # app.run(host='192.168.18.143', port=5007, debug=True, threaded=True, use_reloader=False)
     # app.run(host='172.168.0.81', port=5007, debug=True, threaded=True, use_reloader=False)
-    app.run(host=Host_IP, port=5007, debug=True, threaded=True, use_reloader=False)
+    # app.run(host=Host_IP, port=5007, debug=True, threaded=True, use_reloader=False)
+    app.run(host=Host_IP if Host_IP else "172.168.0.81", port=5007, debug=True, threaded=True, use_reloader=False)
+
