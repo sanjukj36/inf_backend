@@ -208,5 +208,5 @@ if __name__ == '__main__':
     print(IP)
     # Bind to your LAN IP (as you had). Change if needed.
     # app.run(host='172.168.0.81', port=5001, debug=True, threaded=True, use_reloader=False)
-    app.run(host=IP if IP else "192.168.18.143", port=5001, debug=True, threaded=True, use_reloader=False)
+    app.run(host=IP if IP else "172.168.0.81", port=5001, debug=True, threaded=True, use_reloader=False)
     # app.run(host='192.168.18.143', port=5001, debug=True, threaded=True, use_reloader=False)
