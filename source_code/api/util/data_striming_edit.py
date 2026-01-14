@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()  # load variables from .env file if present
 
 INTERNET_SOCKET_TIMEOUT = 2.0      # tolerate ~1–2 s RTT
-BASE_URL = os.getenv("BASE_URL", "http://127.0.0.1:5004")
+BASE_URL = os.getenv("BASE_URL", "http://172.168.0.81:5004")
 API_URL = f"{BASE_URL}/api/table/update"
 # API_URL = os.getenv("API_URL", "http://127.0.0.1:5004/api/table/update")
 PAYLOAD_DIR = os.getenv("FAILED_DIR", r"./payload_edit")
