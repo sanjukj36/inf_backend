@@ -89,6 +89,7 @@ def ping_ok(ip):
     """
     Windows ping. Returns True if majority of replies succeed.
     """
+    print(f"[PING] Checking IP: {ip}")
     cmd = ["ping", "-n", str(PING_COUNT), "-w", str(PING_TIMEOUT_MS), ip]
     try:
         res = subprocess.run(
