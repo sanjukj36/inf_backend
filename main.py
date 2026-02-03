@@ -30,6 +30,7 @@ files_to_run = [
     "source_code/api/util/data_striming.py",
     "source_code/api/util/data_striming_edit.py",
     "source_code/api/util/filewire.py",
+    "source_code/api/util/receiver.py",
     "source_code/api/historic_alarm.py",
     "source_code/api/mqtt.py",
     "source_code/api/Ping_satatus.py",
