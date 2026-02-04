@@ -68,9 +68,9 @@ def storage_dummy():
                 "unit": "Gb"
             },
             "transbox": {
-                "free_storage": 168,
+                "free_storage": 165,
                 "total_storage": 222,
-                "used_storage": 54,
+                "used_storage": 57,
                 "unit": "Gb"
             }
         },
