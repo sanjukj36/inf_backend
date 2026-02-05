@@ -27,14 +27,12 @@ def current_minute_ts():
 
 
 def write_live_file(output: str):
-    """Overwrite live data file"""
     live_path = os.path.join(BASE_PATH, LIVE_FILE_NAME)
     with open(live_path, "w", encoding="utf-8") as f:
         f.write(output + "\n")
 
 
 def append_payload_file(minute_ts: str, output: str):
-    """Append payload to minute-based file"""
     file_name = f"{PREFIX}{minute_ts}.json"
     path = os.path.join(PAYLOAD_FOLDER, file_name)
     with open(path, "a", encoding="utf-8") as f:
@@ -43,8 +41,8 @@ def append_payload_file(minute_ts: str, output: str):
 
 def cleanup_old_payload_files():
     """
-    Keep only the latest MAX_PAYLOAD_FILES.
-    Delete the oldest files first.
+    ALWAYS enforce MAX_PAYLOAD_FILES
+    Runs after EVERY insert
     """
     files = [
         os.path.join(PAYLOAD_FOLDER, f)
@@ -52,20 +50,19 @@ def cleanup_old_payload_files():
         if f.endswith(".json")
     ]
 
-    if len(files) <= MAX_PAYLOAD_FILES:
-        return
+    excess = len(files) - MAX_PAYLOAD_FILES
+    if excess <= 0:
+        return  # nothing to delete
 
-    # Sort by creation time (oldest first)
+    # Oldest first (Windows-safe)
     files.sort(key=os.path.getctime)
 
-    files_to_delete = files[:-MAX_PAYLOAD_FILES]
-
-    for file_path in files_to_delete:
+    for file_path in files[:excess]:
         try:
             os.remove(file_path)
             print(f"🗑️ Deleted old payload file: {os.path.basename(file_path)}")
         except Exception as e:
-            print(f"⚠️ Failed to delete {file_path}: {e}")
+            print(f"⚠️ Delete failed {file_path}: {e}")
 
 
 # ================= ROUTES =================
@@ -81,16 +78,13 @@ def receive_mqtt():
         minute_ts = current_minute_ts()
 
         with lock:
-            # Update live file
             write_live_file(output)
-
-            # Append to minute-based payload file
             append_payload_file(minute_ts, output)
 
-            # Cleanup old payload files if limit exceeded
+            # 🔥 ALWAYS CHECK AFTER INSERT
             cleanup_old_payload_files()
 
-        print("📥 Received & stored:", output)
+        print("📥 Stored & verified")
         return jsonify({"status": "saved"}), 200
 
     except Exception as e:
