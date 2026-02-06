@@ -1,10 +1,8 @@
-from flask import Flask, request, jsonify
 import os
 import json
-from datetime import datetime, timezone
+import subprocess
 import threading
-
-app = Flask(__name__)
+from datetime import datetime, timezone
 
 # ================= CONFIG =================
 BASE_PATH = r"C:\Mqtt\__data"
@@ -12,23 +10,27 @@ PAYLOAD_FOLDER = os.path.join(BASE_PATH, "payload")
 LIVE_FILE_NAME = "mqtt_live_data.json"
 PREFIX = "NDCTELE_"
 MAX_PAYLOAD_FILES = 1400
+
+MOSQUITTO_SUB = r"C:\Program Files\mosquitto\mosquitto_sub.exe"
+MQTT_HOST = "172.168.0.80"
+MQTT_PORT = "1883"
+MQTT_TOPIC = "ndc/min_all"
 # =========================================
 
 os.makedirs(BASE_PATH, exist_ok=True)
 os.makedirs(PAYLOAD_FOLDER, exist_ok=True)
 
-lock = threading.Lock()  # thread-safe operations
+lock = threading.Lock()
 
 
 # ================= UTILITIES =================
 def current_minute_ts():
-    """UTC timestamp: YYYYMMDDHHMM"""
     return datetime.now(timezone.utc).strftime("%Y%m%d%H%M")
 
 
 def write_live_file(output: str):
-    live_path = os.path.join(BASE_PATH, LIVE_FILE_NAME)
-    with open(live_path, "w", encoding="utf-8") as f:
+    path = os.path.join(BASE_PATH, LIVE_FILE_NAME)
+    with open(path, "w", encoding="utf-8") as f:
         f.write(output + "\n")
 
 
@@ -40,10 +42,6 @@ def append_payload_file(minute_ts: str, output: str):
 
 
 def cleanup_old_payload_files():
-    """
-    ALWAYS enforce MAX_PAYLOAD_FILES
-    Runs after EVERY insert
-    """
     files = [
         os.path.join(PAYLOAD_FOLDER, f)
         for f in os.listdir(PAYLOAD_FOLDER)
@@ -52,46 +50,65 @@ def cleanup_old_payload_files():
 
     excess = len(files) - MAX_PAYLOAD_FILES
     if excess <= 0:
-        return  # nothing to delete
+        return
 
-    # Oldest first (Windows-safe)
     files.sort(key=os.path.getctime)
 
-    for file_path in files[:excess]:
+    for f in files[:excess]:
         try:
-            os.remove(file_path)
-            print(f"🗑️ Deleted old payload file: {os.path.basename(file_path)}")
+            os.remove(f)
+            print(f"🗑️ Deleted: {os.path.basename(f)}")
         except Exception as e:
-            print(f"⚠️ Delete failed {file_path}: {e}")
+            print(f"⚠️ Delete failed: {e}")
 
 
-# ================= ROUTES =================
-@app.route("/mqtt", methods=["POST"])
-def receive_mqtt():
-    try:
-        payload = request.get_json(force=True)
+# ================= MQTT LISTENER =================
+def mqtt_listener():
+    print("🚀 MQTT Listener started...")
 
-        payload["last_updated"] = datetime.now(timezone.utc).isoformat()
-        wrapped = {"data": payload}
-        output = json.dumps(wrapped)
+    cmd = [
+        MOSQUITTO_SUB,
+        "-h", MQTT_HOST,
+        "-p", MQTT_PORT,
+        "-t", MQTT_TOPIC,
+        "-v"
+    ]
 
-        minute_ts = current_minute_ts()
+    process = subprocess.Popen(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True
+    )
 
-        with lock:
-            write_live_file(output)
-            append_payload_file(minute_ts, output)
+    for line in process.stdout:
+        try:
+            topic, message = line.strip().split(" ", 1)
+            payload = json.loads(message)
 
-            # 🔥 ALWAYS CHECK AFTER INSERT
-            cleanup_old_payload_files()
+            payload["last_updated"] = datetime.now(timezone.utc).isoformat()
+            wrapped = {"data": payload}
+            output = json.dumps(wrapped)
 
-        print("📥 Stored & verified")
-        return jsonify({"status": "saved"}), 200
+            minute_ts = current_minute_ts()
 
-    except Exception as e:
-        print("⚠️ Error:", e)
-        return jsonify({"error": str(e)}), 500
+            with lock:
+                write_live_file(output)
+                append_payload_file(minute_ts, output)
+                cleanup_old_payload_files()
+
+            print("📥 MQTT data saved")
+
+        except json.JSONDecodeError:
+            print("⚠️ Invalid JSON received")
+        except Exception as e:
+            print("⚠️ Error:", e)
 
 
 # ================= MAIN =================
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, threaded=True)
+    mqtt_thread = threading.Thread(target=mqtt_listener, daemon=True)
+    mqtt_thread.start()
+
+    print("✅ System running. Waiting for MQTT data...")
+    mqtt_thread.join()
