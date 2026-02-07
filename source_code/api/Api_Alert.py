@@ -36,6 +36,12 @@ SWEEP_PERIOD_SEC = 1.0             # sweep frequency
 INTERNET_CHECK_PERIOD_SEC = 5.0    # internet check frequency
 INTERNET_SOCKET_TIMEOUT = 2.0      # tolerate ~1–2 s RTT
 
+# ========= Network Recovery =========
+AUTO_RENEW_ON_INTERNET_DOWN = True
+RENEW_COOLDOWN_SEC = 60   # do NOT make this small
+_last_renew_time = 0.0
+
+
 # HOSTS = [
 #     {"name": "MDC",      "ip": "172.168.0.80"},
 #     {"name": "PRAXIS", "ip": "192.168.1.101"},
@@ -57,6 +63,43 @@ host_state = {
 internet_state = {"ok": True, "last_checked": None}
 alerts_cache = []
 alerts_cache_ts = 0.0
+
+# ========= Network Recovery =========
+def renew_network_if_needed(ts):
+    global _last_renew_time
+
+    # Only Windows supports ipconfig
+    if os.name != "nt":
+        return
+
+    if not AUTO_RENEW_ON_INTERNET_DOWN:
+        return
+
+    now = time.time()
+    if (now - _last_renew_time) < RENEW_COOLDOWN_SEC:
+        return  # cooldown protection
+
+    print("[NET] Internet down → attempting ipconfig renew")
+
+    try:
+        subprocess.run(
+            ["ipconfig", "/release"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=10
+        )
+        time.sleep(2)
+        subprocess.run(
+            ["ipconfig", "/renew"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=15
+        )
+        _last_renew_time = now
+        print("[NET] ipconfig renew triggered successfully")
+    except Exception as e:
+        print("[NET] ipconfig renew failed:", e)
+
 
 # ========= Helpers =========
 def now_str(dt=None):
@@ -151,6 +194,10 @@ def monitor_loop(stop_event: threading.Event):
                     internet_state["ok"] = ok
                     internet_state["last_checked"] = ts
                 last_net_check = time.time()
+
+                # Attempt recovery only if internet is DOWN
+                if not ok:
+                    renew_network_if_needed(ts)
 
             # Parallel pings
             futures = {pool.submit(ping_ok, h["ip"]): h["ip"] for h in HOSTS}
