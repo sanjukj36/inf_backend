@@ -62,15 +62,15 @@ def storage_dummy():
     dummy_data = {
         "data": {
             "mdc": {
-                "free_storage": 198,
+                "free_storage": 197,
                 "total_storage": 212,
-                "used_storage": 14,
+                "used_storage": 15,
                 "unit": "Gb"
             },
             "transbox": {
-                "free_storage": 168,
+                "free_storage": 167,
                 "total_storage": 222,
-                "used_storage": 54,
+                "used_storage": 55,
                 "unit": "Gb"
             }
         },
