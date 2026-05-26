@@ -34,6 +34,7 @@ files_to_run = [
     "source_code/api/historic_alarm.py",
     "source_code/api/mqtt.py",
     "source_code/api/Ping_satatus.py",
+    "source_code/api/AMS.py",
 ]
 
 # Keep references to processes
