@@ -417,6 +417,47 @@ def get_all_tags():
         }), 500
 
 
+
+# ---------------------- GET LAST UPDATE TIME ----------------------
+@app.route('/app/get/last_updated_time/', methods=['GET'])
+def get_last_updated_time():
+
+    try:
+        if not os.path.exists(FILE_PATH):
+            return jsonify({
+                "success": False,
+                "message": "mqtt_live_data.json not found"
+            }), 404
+
+        with open(FILE_PATH, "r") as file:
+            mqtt_json = json.load(file)
+
+        mqtt_data = mqtt_json.get("data", {})
+
+        timestamp = mqtt_data.get("time")
+
+        if timestamp:
+            human_readable_time = datetime.fromtimestamp(
+                int(timestamp)
+            ).strftime("%Y-%m-%d %H:%M:%S")
+        else:
+            human_readable_time = None
+
+        return jsonify({
+            "success": True,
+            "data": {
+                "timestamp": timestamp,
+                "last_updated_time": human_readable_time
+            }
+        }), 200
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": str(e)
+        }), 500
+
+
 # ---------------------- MAIN ----------------------
 if __name__ == '__main__':
 
