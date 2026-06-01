@@ -198,10 +198,29 @@ def get_mqtt_config():
         else:
             data["value"] = 0
 
+        # -----------------------------------------
+    # Get Last Updated Time
+    # -----------------------------------------
+    timestamp = mqtt_data.get("time")
+
+    if timestamp:
+        try:
+            human_readable_time = datetime.fromtimestamp(
+                int(timestamp)
+            ).strftime("%Y-%m-%d %H:%M:%S")
+        except Exception:
+            human_readable_time = None
+    else:
+        human_readable_time = None
+
     return jsonify({
         "success": True,
         "label": row[0],
-        "data": data
+        "data": data,
+        "last_updated": {
+            "timestamp": timestamp,
+            "last_updated_time": human_readable_time
+        }
     }), 200
 
 
@@ -418,44 +437,44 @@ def get_all_tags():
 
 
 
-# ---------------------- GET LAST UPDATE TIME ----------------------
-@app.route('/app/get/last_updated_time/', methods=['GET'])
-def get_last_updated_time():
+# # ---------------------- GET LAST UPDATE TIME ----------------------
+# @app.route('/app/get/last_updated_time/', methods=['GET'])
+# def get_last_updated_time():
 
-    try:
-        if not os.path.exists(FILE_PATH):
-            return jsonify({
-                "success": False,
-                "message": "mqtt_live_data.json not found"
-            }), 404
+#     try:
+#         if not os.path.exists(FILE_PATH):
+#             return jsonify({
+#                 "success": False,
+#                 "message": "mqtt_live_data.json not found"
+#             }), 404
 
-        with open(FILE_PATH, "r") as file:
-            mqtt_json = json.load(file)
+#         with open(FILE_PATH, "r") as file:
+#             mqtt_json = json.load(file)
 
-        mqtt_data = mqtt_json.get("data", {})
+#         mqtt_data = mqtt_json.get("data", {})
 
-        timestamp = mqtt_data.get("time")
+#         timestamp = mqtt_data.get("time")
 
-        if timestamp:
-            human_readable_time = datetime.fromtimestamp(
-                int(timestamp)
-            ).strftime("%Y-%m-%d %H:%M:%S")
-        else:
-            human_readable_time = None
+#         if timestamp:
+#             human_readable_time = datetime.fromtimestamp(
+#                 int(timestamp)
+#             ).strftime("%Y-%m-%d %H:%M:%S")
+#         else:
+#             human_readable_time = None
 
-        return jsonify({
-            "success": True,
-            "data": {
-                "timestamp": timestamp,
-                "last_updated_time": human_readable_time
-            }
-        }), 200
+#         return jsonify({
+#             "success": True,
+#             "data": {
+#                 "timestamp": timestamp,
+#                 "last_updated_time": human_readable_time
+#             }
+#         }), 200
 
-    except Exception as e:
-        return jsonify({
-            "success": False,
-            "message": str(e)
-        }), 500
+#     except Exception as e:
+#         return jsonify({
+#             "success": False,
+#             "message": str(e)
+#         }), 500
 
 
 # ---------------------- MAIN ----------------------
