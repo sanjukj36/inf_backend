@@ -48,7 +48,6 @@ def init_db():
     conn.commit()
     conn.close()
 
-
 # ---------------------- ADD / UPDATE TAG ----------------------
 @app.route('/app/add/tag/', methods=['POST'])
 def add_or_update_tag():
@@ -114,6 +113,8 @@ def add_or_update_tag():
 @app.route('/app/get/mqtt/', methods=['GET'])
 def get_mqtt_config():
 
+    SKIP_MQTT_LABELS = ["__sidebar_config__", "__ui_theme__"]
+
     init_db()
 
     label = request.args.get("label")
@@ -176,29 +177,32 @@ def get_mqtt_config():
     # Update Values From MQTT JSON
     # -----------------------------------------
 
-    # If data is list
-    if isinstance(data, list):
+    if label not in SKIP_MQTT_LABELS:
 
-        for item in data:
+        # If data is list
+        if isinstance(data, list):
 
-            tag = item.get("tag")
+            for item in data:
+
+                tag = item.get("tag")
+
+                if tag in mqtt_data:
+                    item["value"] = mqtt_data[tag]
+                else:
+                    item["value"] = 0
+
+        # If data is object
+        elif isinstance(data, dict):
+
+            tag = data.get("tag")
 
             if tag in mqtt_data:
-                item["value"] = mqtt_data[tag]
+                data["value"] = mqtt_data[tag]
             else:
-                item["value"] = 0
+                data["value"] = 0
 
-    # If data is object
-    elif isinstance(data, dict):
-
-        tag = data.get("tag")
-
-        if tag in mqtt_data:
-            data["value"] = mqtt_data[tag]
-        else:
-            data["value"] = 0
-
-        # -----------------------------------------
+            # -----------------------------------------
+        
     # Get Last Updated Time
     # -----------------------------------------
     timestamp = mqtt_data.get("time")
@@ -436,46 +440,196 @@ def get_all_tags():
         }), 500
 
 
+# ---------------------- LOGIN ----------------------
+# @app.route('/app/login/', methods=['POST'])
+# def login():
 
-# # ---------------------- GET LAST UPDATE TIME ----------------------
-# @app.route('/app/get/last_updated_time/', methods=['GET'])
-# def get_last_updated_time():
+#     data = request.json
 
-#     try:
-#         if not os.path.exists(FILE_PATH):
-#             return jsonify({
-#                 "success": False,
-#                 "message": "mqtt_live_data.json not found"
-#             }), 404
+#     username = data.get("username")
+#     password = data.get("password")
 
-#         with open(FILE_PATH, "r") as file:
-#             mqtt_json = json.load(file)
+#     users = {
+#         "Admin": {
+#             "password": "Admin123",
+#             "userType": "admin"
+#         },
+#         "Rawabi": {
+#             "password": "Rawabi123",
+#             "userType": "client"
+#         }
+#     }
 
-#         mqtt_data = mqtt_json.get("data", {})
+#     user = users.get(username)
 
-#         timestamp = mqtt_data.get("time")
-
-#         if timestamp:
-#             human_readable_time = datetime.fromtimestamp(
-#                 int(timestamp)
-#             ).strftime("%Y-%m-%d %H:%M:%S")
-#         else:
-#             human_readable_time = None
-
-#         return jsonify({
-#             "success": True,
-#             "data": {
-#                 "timestamp": timestamp,
-#                 "last_updated_time": human_readable_time
-#             }
-#         }), 200
-
-#     except Exception as e:
+#     if not user or user["password"] != password:
 #         return jsonify({
 #             "success": False,
-#             "message": str(e)
-#         }), 500
+#             "message": "Invalid username or password"
+#         }), 401
 
+#     return jsonify({
+#         "success": True,
+#         "message": "Login successful",
+#         "data": {
+#             "username": username,
+#             "userType": user["userType"]
+#         }
+#     }), 200
+
+# ---------------------- LOGIN ----------------------
+@app.route('/app/login5/', methods=['POST'])
+def login5():
+
+    data = request.json or {}
+
+    username = data.get("username")
+    password = data.get("password")
+
+    users = {
+        "Admin": {
+            "password": "Admin123",
+            "userType": "admin"
+        },
+        "Rawabi": {
+            "password": "Rawabi123",
+            "userType": "client"
+        }
+    }
+
+    user = users.get(username)
+
+    # Invalid credentials
+    if not user or user["password"] != password:
+        return jsonify({
+            "success": False,
+            "message": "Invalid username or password"
+        }), 401
+
+    response_data = {
+        "username": username,
+        "userType": user["userType"]
+    }
+
+    # Client Login
+    if user["userType"] == "client":
+
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT ui_config_data
+            FROM ams_config
+            WHERE label = ?
+        """, ("__sidebar_config__",))
+
+        row = cursor.fetchone()
+
+        conn.close()
+
+        # Sidebar config not created yet
+        if not row:
+            return jsonify({
+                "success": False,
+                "message": "Admin side configuration is pending. Please contact administrator."
+            }), 401
+
+        response_data["sidebarConfig"] = json.loads(row[0])
+
+    # Success
+    return jsonify({
+        "success": True,
+        "message": "Login successful",
+        "data": response_data
+    }), 200
+
+# ---------------------- LOGIN ----------------------
+@app.route('/app/login/', methods=['POST'])
+def login():
+
+    data = request.json or {}
+
+    username = data.get("username")
+    password = data.get("password")
+
+    users = {
+        "Admin": {
+            "password": "Admin123",
+            "userType": "admin"
+        },
+        "Rawabi": {
+            "password": "Rawabi123",
+            "userType": "client"
+        }
+    }
+
+    user = users.get(username)
+
+    # Invalid credentials
+    if not user or user["password"] != password:
+        return jsonify({
+            "success": False,
+            "message": "Invalid username or password"
+        }), 401
+
+    response_data = {
+        "username": username,
+        "userType": user["userType"]
+    }
+
+    # Client Login Validation
+    if user["userType"] == "client":
+
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT ui_config_data
+            FROM ams_config
+            WHERE label = ?
+        """, ("__sidebar_config__",))
+
+        row = cursor.fetchone()
+
+        conn.close()
+
+        # Sidebar config not created
+        if not row:
+            return jsonify({
+                "success": False,
+                "message": "Admin side configuration is pending. Please contact administrator."
+            }), 401
+
+        try:
+            sidebar_config = json.loads(row[0])
+        except Exception:
+            sidebar_config = []
+
+        description = ""
+
+        if (
+            isinstance(sidebar_config, list)
+            and len(sidebar_config) > 0
+            and isinstance(sidebar_config[0], dict)
+        ):
+            description = str(
+                sidebar_config[0].get("description", "")
+            ).strip()
+
+        # Sidebar config is empty / pending
+        if not description or description == "[]":
+            return jsonify({
+                "success": False,
+                "message": "Admin side configuration is pending. Please contact administrator."
+            }), 401
+
+        response_data["sidebarConfig"] = sidebar_config
+
+    return jsonify({
+        "success": True,
+        "message": "Login successful",
+        "data": response_data
+    }), 200
 
 # ---------------------- MAIN ----------------------
 if __name__ == '__main__':
