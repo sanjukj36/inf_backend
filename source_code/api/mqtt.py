@@ -72,4 +72,5 @@ def mqtt_data_dummy():
 
 if __name__ == '__main__':
     # app.run(host='172.168.0.81', port=5005, debug=True)
-    app.run(host=IP if IP else "172.168.0.81", port=5005, debug=True)
+    # app.run(host=IP if IP else "172.168.0.81", port=5005, debug=True)
+    app.run(host="0.0.0.0", port=5005, debug=True)

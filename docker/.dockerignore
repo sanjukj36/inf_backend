@@ -1,0 +1,13 @@
+venv
+.git
+__pycache__
+*.pyc
+
+payload
+payload_edit
+
+__data
+
+*.db
+
+node_modules

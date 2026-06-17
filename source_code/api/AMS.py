@@ -635,7 +635,7 @@ def login():
 if __name__ == '__main__':
 
     app.run(
-        host=IP if IP else "172.168.0.81",
+        host="0.0.0.0",
         port=5008,
         debug=True
     )
