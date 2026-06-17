@@ -88,7 +88,7 @@ def add_or_update_tag():
             WHERE label = ?
         """, (json_data, label))
 
-        message = "Label updated successfully"
+        message = "Updated successfully"
 
     else:
 
@@ -98,7 +98,7 @@ def add_or_update_tag():
             VALUES (?, ?)
         """, (label, json_data))
 
-        message = "Label created successfully"
+        message = "Created successfully"
 
     conn.commit()
     conn.close()
