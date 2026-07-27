@@ -14,7 +14,8 @@ MAX_PAYLOAD_FILES = 1400
 MOSQUITTO_SUB = r"C:\Program Files\mosquitto\mosquitto_sub.exe"
 MQTT_HOST = "172.168.0.80"
 MQTT_PORT = "1883"
-MQTT_TOPIC = "ndc/min_all"
+# MQTT_TOPIC = "ndc/min_all"
+MQTT_TOPIC = "ndc/all"
 # =========================================
 
 os.makedirs(BASE_PATH, exist_ok=True)
